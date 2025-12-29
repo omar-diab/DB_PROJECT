@@ -1,0 +1,17 @@
+nohup: ignoring input
+Server is running on http://localhost:3000
+Error: Duplicate entry 'string' for key 'users.email'
+    at PromisePool.query (/home/shihabi/Desktop/book/server/node_modules/mysql2/lib/promise/pool.js:36:22)
+    at Object.query (file:///home/shihabi/Desktop/book/server/DB/dbcon.js:14:34)
+    at register (file:///home/shihabi/Desktop/book/server/controllers/auth.js:15:31)
+Error: Duplicate entry '978-3-16-148410-0' for key 'books.isbn'
+    at PromisePool.query (/home/shihabi/Desktop/book/server/node_modules/mysql2/lib/promise/pool.js:36:22)
+    at Object.query (file:///home/shihabi/Desktop/book/server/DB/dbcon.js:14:34)
+    at createBook (file:///home/shihabi/Desktop/book/server/controllers/book.js:18:29)
+    at file:///home/shihabi/Desktop/book/server/middlewares/async_wrapper.js:3:21
+    at Layer.handleRequest (/home/shihabi/Desktop/book/server/node_modules/router/lib/layer.js:152:17)
+    at next (/home/shihabi/Desktop/book/server/node_modules/router/lib/route.js:157:13)
+    at authMiddleware (file:///home/shihabi/Desktop/book/server/middlewares/auth.js:17:9)
+    at Layer.handleRequest (/home/shihabi/Desktop/book/server/node_modules/router/lib/layer.js:152:17)
+    at next (/home/shihabi/Desktop/book/server/node_modules/router/lib/route.js:157:13)
+    at multerMiddleware (/home/shihabi/Desktop/book/server/node_modules/multer/lib/make-middleware.js:19:41)
