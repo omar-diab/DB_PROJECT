@@ -10,9 +10,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import errorHandlerMiddleware from './middlewares/error-handler.js';
 
-
 const app = express();
-const PORT = 3010;
+const PORT = process.env.NODE_ENV;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
