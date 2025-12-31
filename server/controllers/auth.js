@@ -28,23 +28,26 @@ const login = async (req, res) => {
     }
 
     const [users] = await db.query(
-    'SELECT * FROM users WHERE email = ? AND password_hash = ?',
-    [email, password]
-    );   
+    'SELECT * FROM users WHERE email = ?',
+    [email]
+    );
     const user = users[0];
+
+    // Use environment JWT secret when available (configured via .env)
+    const JWT_SECRET = process.env.JWT_SECRET || 'jwtSecret';
 
     if (!user) {
         throw new CustomAPIError('Invalid Credentials', 401);
     }
 
-    // const isPasswordCorrect = await bcrypt.compare(password, user.password_hash);
-    // if (!isPasswordCorrect) {
-    //     throw new CustomAPIError('Invalid Credentials', 401);
-    // }
+    const isPasswordCorrect = await bcrypt.compare(password, user.password_hash);
+    if (!isPasswordCorrect) {
+        throw new CustomAPIError('Invalid Credentials', 401);
+    }
 
     const token = jwt.sign(
         { userId: user.user_id, name: user.name, role: user.role },
-        'jwtSecret', // In production, use process.env.JWT_SECRET
+        JWT_SECRET,
         { expiresIn: '30d' }
     );
 

@@ -12,13 +12,23 @@ import errorHandlerMiddleware from './middlewares/error-handler.js';
 
 
 const app = express();
-const PORT = 3000;
+const PORT = 3010;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(express.json());
-app.use(cors());
+
+const corsOptions = {
+  origin: (origin, callback) => callback(null, true), // reflect request origin
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
+// Ensure preflight is handled by the CORS middleware (global)
+// (No explicit app.options route needed when using the CORS middleware globally)
+
 app.use('/api/v1/auth', authRouter); 
 
 // Serve frontend static files from the `public` folder
@@ -135,7 +145,7 @@ app.use('/api-docs', (req, res, next) => {
 
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
   });
 }

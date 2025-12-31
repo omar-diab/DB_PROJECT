@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { AlertCircle, BookOpen, ShoppingCart, User, LogIn, LogOut, Plus, Edit2, Trash2, Search, Filter } from 'lucide-react';
 
 // API Configuration
-const API_BASE_URL = 'https://mns4dh07-3000.euw.devtunnels.ms/api/v1';
+const API_BASE_URL = 'http://localhost:3010/api/v1';
 
 // Main App Component
 export default function BookstoreApp() {
   const [currentView, setCurrentView] = useState('books');
   const [authToken, setAuthToken] = useState(localStorage.getItem('authToken'));
+  const [authInitIsLogin, setAuthInitIsLogin] = useState(true);
   const [user, setUser] = useState(null);
   const [books, setBooks] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -774,6 +775,7 @@ export default function BookstoreApp() {
         authToken={authToken}
         user={user}
         onLogout={handleLogout}
+        onShowAuth={(mode) => setAuthInitIsLogin(mode === 'login')}
       />
 
       {authToken && (
@@ -823,6 +825,7 @@ export default function BookstoreApp() {
               onLogin={handleLogin}
               onRegister={handleRegister}
               loading={loading}
+              initialIsLogin={authInitIsLogin}
             />
           ) : currentView === 'books' ? (
             <BooksView 
@@ -848,7 +851,7 @@ export default function BookstoreApp() {
 }
 
 // Header Component
-function Header({ authToken, user, onLogout }) {
+function Header({ authToken, user, onLogout, onShowAuth }) {
   return (
     <header className="header">
       <div className="container">
@@ -875,9 +878,16 @@ function Header({ authToken, user, onLogout }) {
                 </button>
               </>
             ) : (
-              <div className="user-info">
+              <div className="user-info" style={{ gap: '0.75rem' }}>
                 <LogIn size={18} />
                 <span>Please login to continue</span>
+                <button className="btn btn-ghost" onClick={() => onShowAuth && onShowAuth('login')}>
+                  <LogIn size={16} />
+                  Login
+                </button>
+                <button className="btn btn-primary" onClick={() => onShowAuth && onShowAuth('register')}>
+                  Register
+                </button>
               </div>
             )}
           </div>
@@ -888,13 +898,18 @@ function Header({ authToken, user, onLogout }) {
 }
 
 // Auth View Component
-function AuthView({ onLogin, onRegister, loading }) {
-  const [isLogin, setIsLogin] = useState(true);
+function AuthView({ onLogin, onRegister, loading, initialIsLogin = true }) {
+  const [isLogin, setIsLogin] = useState(initialIsLogin);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
   });
+
+  useEffect(() => {
+    setIsLogin(initialIsLogin);
+    setFormData({ name: '', email: '', password: '' });
+  }, [initialIsLogin]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -1010,7 +1025,7 @@ function BooksView({ books, onCreateBook, onUpdateBook, onDeleteBook, onCreateOr
       ) : (
         <div className="books-grid">
           {filteredBooks.map((book) => (
-            <div key={book.id} className="book-card">
+            <div key={book.id ?? book.book_id} className="book-card">
               <div className="book-image">
                 {book.image ? (
                   <img src={book.image} alt={book.title} />
@@ -1030,14 +1045,14 @@ function BooksView({ books, onCreateBook, onUpdateBook, onDeleteBook, onCreateOr
                   </div>
                 </div>
                 <div className="book-actions">
-                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => onCreateOrder({ book_id: book.id, quantity: 1 })}>
+                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => onCreateOrder({ book_id: (book.id ?? book.book_id), quantity: 1 })}>
                     <ShoppingCart size={16} />
                     Order
                   </button>
                   <button className="icon-btn" onClick={() => handleEdit(book)}>
                     <Edit2 size={16} />
                   </button>
-                  <button className="icon-btn danger" onClick={() => onDeleteBook(book.id)}>
+                  <button className="icon-btn danger" onClick={() => onDeleteBook(book.id ?? book.book_id)}>
                     <Trash2 size={16} />
                   </button>
                 </div>

@@ -52,17 +52,19 @@ import db from '../DB/dbcon.js';
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 async function getAllBooks(req, res) {
-    const [books] = await db.query('SELECT * FROM BookStore.books;');
+    const [rows] = await db.query('SELECT * FROM books;');
+    const books = rows.map(r => ({ ...r, id: r.book_id }));
     res.json(books);
 }
 
 async function getBook(req, res) {
     const { id } = req.params;
-    const [books] = await db.query('SELECT * FROM BookStore.books WHERE book_id = ?;', [id]);
-    if (books.length === 0) {
+    const [rows] = await db.query('SELECT * FROM books WHERE book_id = ?;', [id]);
+    if (rows.length === 0) {
         return res.status(404).json({ msg: 'Book not found' });
     }
-    res.json(books[0]);
+    const book = rows[0];
+    res.json({ ...book, id: book.book_id });
 }
 
 async function createBook(req, res) {
@@ -83,9 +85,9 @@ async function createBook(req, res) {
     const sellerId = sellerIdRaw && sellerIdRaw !== '' && sellerIdRaw !== 'null' ? Number(sellerIdRaw) : (req.user && req.user.userId) ?? null;
 
     // Validate required fields
-    // if (!typeId || isNaN(typeId)) {
-    //     return res.status(400).json({ msg: 'type_id is required and must be a valid number' });
-    // }
+    if (!typeId || isNaN(typeId)) {
+        return res.status(400).json({ msg: 'type_id is required and must be a valid number' });
+    }
 
     if (!sellerId || isNaN(sellerId)) {
         return res.status(400).json({ msg: 'seller_id is required and must be a valid number' });
@@ -96,7 +98,7 @@ async function createBook(req, res) {
     }
 
     const result = await db.query(
-        'INSERT INTO BookStore.books (title, author , isbn , description , price, stock, type_id, seller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
+        'INSERT INTO books (title, author , isbn , description , price, stock, type_id, seller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
         [title, author, isbn, description, priceNum, stockNum, 1, sellerId]
     );
 
@@ -170,7 +172,7 @@ async function updateBook(req, res) {
     values.push(id);
 
     // Build the SQL query
-    const sql = `UPDATE BookStore.books SET ${fields.join(', ')} WHERE book_id = ?;`;
+    const sql = `UPDATE books SET ${fields.join(', ')} WHERE book_id = ?;`;
 
     // Execute the query
     const result = await db.query(sql, values);
@@ -181,19 +183,78 @@ async function updateBook(req, res) {
     }
 
     // Fetch the updated book to return in the response
-    const updatedBook = await db.query('SELECT * FROM BookStore.books WHERE book_id = ?;', [id]);
+    const updatedBook = await db.query('SELECT * FROM books WHERE book_id = ?;', [id]);
 
     // Return the updated book
     res.json(updatedBook[0][0]);
 }
 
 async function deleteBook(req, res) {
-    const { id } = req.params;
-    const result = await db.query('DELETE FROM BookStore.books WHERE book_id = ?;', [id]);
-    if (result[0].affectedRows === 0) {
-        return res.status(404).json({ msg: 'Book not found' });
+  const { id } = req.params;
+
+  // Defensive checks
+  if (id === undefined || id === 'undefined' || id === 'null' || (typeof id === 'string' && id.trim() === '')) {
+    return res.status(400).json({ msg: 'Book id is required' });
+  }
+
+  const idNum = Number(id);
+  if (Number.isNaN(idNum)) {
+    return res.status(400).json({ msg: 'Invalid book id' });
+  }
+
+  let conn;
+  try {
+    // mysql2/promise pool
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // (1) تأكد أن الكتاب موجود
+    const [bookRows] = await conn.query('SELECT book_id FROM books WHERE book_id = ?;', [idNum]);
+    if (bookRows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ msg: 'Book not found' });
     }
-    res.status(204).send();
+
+    // (2) احذف inventory_transactions اللي مرتبطة بـ order_items الخاصة بهذا الكتاب
+    await conn.query(
+      `
+      DELETE it
+      FROM inventory_transactions it
+      JOIN order_items oi ON oi.order_item_id = it.related_order_item_id
+      WHERE oi.book_id = ?;
+      `,
+      [idNum]
+    );
+
+    // (3) احذف order_items الخاصة بالكتاب
+    await conn.query('DELETE FROM order_items WHERE book_id = ?;', [idNum]);
+
+    // (4) احذف الكتاب نفسه
+    const [delBook] = await conn.query('DELETE FROM books WHERE book_id = ?;', [idNum]);
+
+    await conn.commit();
+
+    if (delBook.affectedRows === 0) {
+      return res.status(404).json({ msg: 'Book not found' });
+    }
+
+    return res.status(204).send();
+  } catch (err) {
+    if (conn) await conn.rollback();
+
+    // لو فيه جداول ثانية ماسكة FK على books أو order_items راح يطلع 1451 هنا كمان
+    if (err?.code === 'ER_ROW_IS_REFERENCED_2') {
+      return res.status(409).json({
+        msg: 'Cannot delete book because it is referenced by other records (foreign key constraint).',
+        details: err.sqlMessage,
+      });
+    }
+
+    console.error(err);
+    return res.status(500).json({ msg: 'Server error' });
+  } finally {
+    if (conn) conn.release();
+  }
 }
 
 export { getAllBooks, getBook, createBook, updateBook, deleteBook };
