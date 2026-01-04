@@ -7,6 +7,9 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME || 'book',
   waitForConnections: true,
   connectionLimit: 10,
+  ssl: {
+    ca: process.env.DB_SSL_CA,
+  },
 });
 
 // Update the export to include the pool
