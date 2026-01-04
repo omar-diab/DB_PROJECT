@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertCircle, BookOpen, ShoppingCart, User, LogIn, LogOut, Plus, Edit2, Trash2, Search, Filter } from 'lucide-react';
 
 // API Configuration
-const API_BASE_URL = 'https://mns4dh07-3000.euw.devtunnels.ms/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Main App Component
 export default function BookstoreApp() {
