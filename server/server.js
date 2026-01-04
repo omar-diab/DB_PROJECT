@@ -10,7 +10,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import errorHandlerMiddleware from './middlewares/error-handler.js';
 
-console.log("RUNTIME DB_HOST =", process.env.DB_HOST);
 
 const app = express();
 const PORT = 3000;
