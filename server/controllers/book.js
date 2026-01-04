@@ -52,13 +52,13 @@ import db from '../DB/dbcon.js';
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 async function getAllBooks(req, res) {
-    const [books] = await db.query('SELECT * FROM book.books;');
+    const [books] = await db.query('SELECT * FROM books;');
     res.json(books);
 }
 
 async function getBook(req, res) {
     const { id } = req.params;
-    const [books] = await db.query('SELECT * FROM book.books WHERE book_id = ?;', [id]);
+    const [books] = await db.query('SELECT * FROM books WHERE book_id = ?;', [id]);
     if (books.length === 0) {
         return res.status(404).json({ msg: 'Book not found' });
     }
@@ -96,7 +96,7 @@ async function createBook(req, res) {
     }
 
     const result = await db.query(
-        'INSERT INTO book.books (title, author , isbn , description , price, stock, type_id, seller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
+        'INSERT INTO .books (title, author , isbn , description , price, stock, type_id, seller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
         [title, author, isbn, description, priceNum, stockNum, typeId, sellerId]
     );
 
@@ -170,7 +170,7 @@ async function updateBook(req, res) {
     values.push(id);
 
     // Build the SQL query
-    const sql = `UPDATE book.books SET ${fields.join(', ')} WHERE book_id = ?;`;
+    const sql = `UPDATE books SET ${fields.join(', ')} WHERE book_id = ?;`;
 
     // Execute the query
     const result = await db.query(sql, values);
@@ -181,7 +181,7 @@ async function updateBook(req, res) {
     }
 
     // Fetch the updated book to return in the response
-    const updatedBook = await db.query('SELECT * FROM book.books WHERE book_id = ?;', [id]);
+    const updatedBook = await db.query('SELECT * FROM books WHERE book_id = ?;', [id]);
 
     // Return the updated book
     res.json(updatedBook[0][0]);
@@ -189,7 +189,7 @@ async function updateBook(req, res) {
 
 async function deleteBook(req, res) {
     const { id } = req.params;
-    const result = await db.query('DELETE FROM book.books WHERE book_id = ?;', [id]);
+    const result = await db.query('DELETE FROM books WHERE book_id = ?;', [id]);
     if (result[0].affectedRows === 0) {
         return res.status(404).json({ msg: 'Book not found' });
     }
